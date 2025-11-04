@@ -1,0 +1,52 @@
+{
+  "name": "Group",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the group (e.g., 'Goa Trip', 'Room 203 PG')"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the group"
+    },
+    "invite_code": {
+      "type": "string",
+      "description": "Unique code for inviting members"
+    },
+    "members": {
+      "type": "array",
+      "description": "List of member emails",
+      "items": {
+        "type": "string"
+      }
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "Currency for the group"
+    },
+    "cover_image": {
+      "type": "string",
+      "description": "Cover image URL for the group"
+    },
+    "icon": {
+      "type": "string",
+      "enum": [
+        "plane",
+        "home",
+        "cake",
+        "briefcase",
+        "users",
+        "coffee",
+        "shopping",
+        "heart"
+      ],
+      "default": "users",
+      "description": "Icon representing the group"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
