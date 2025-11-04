@@ -1,0 +1,38 @@
+{
+  "name": "Settlement",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "description": "ID of the group"
+    },
+    "from_user": {
+      "type": "string",
+      "description": "Email of user who paid"
+    },
+    "to_user": {
+      "type": "string",
+      "description": "Email of user who received payment"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount settled"
+    },
+    "settled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of settlement"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Settlement notes"
+    }
+  },
+  "required": [
+    "group_id",
+    "from_user",
+    "to_user",
+    "amount",
+    "settled_date"
+  ]
+}
