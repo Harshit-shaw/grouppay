@@ -1,0 +1,81 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "group_id": {
+      "type": "string",
+      "description": "ID of the group this expense belongs to"
+    },
+    "title": {
+      "type": "string",
+      "description": "Title/description of the expense"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Total amount of the expense"
+    },
+    "paid_by": {
+      "type": "string",
+      "description": "Email of the user who paid"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "food",
+        "lodging",
+        "transport",
+        "entertainment",
+        "shopping",
+        "utilities",
+        "other"
+      ],
+      "default": "other",
+      "description": "Category of expense"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the expense"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "URL of attached receipt/photo"
+    },
+    "split_type": {
+      "type": "string",
+      "enum": [
+        "equal",
+        "weighted",
+        "custom"
+      ],
+      "default": "equal",
+      "description": "How the expense is split"
+    },
+    "participants": {
+      "type": "array",
+      "description": "List of participants with their shares",
+      "items": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "share": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the expense"
+    }
+  },
+  "required": [
+    "group_id",
+    "title",
+    "amount",
+    "paid_by",
+    "date"
+  ]
+}
