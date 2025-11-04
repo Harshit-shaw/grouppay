@@ -1,0 +1,239 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Plus, 
+  TrendingUp, 
+  TrendingDown, 
+  Wallet, 
+  Users as UsersIcon,
+  Receipt,
+  ArrowRight,
+  Plane,
+  Home as HomeIcon,
+  Cake,
+  Briefcase,
+  Coffee,
+  ShoppingBag,
+  Heart
+} from "lucide-react";
+import { motion } from "framer-motion";
+
+const iconMap = {
+  plane: Plane,
+  home: HomeIcon,
+  cake: Cake,
+  briefcase: Briefcase,
+  users: UsersIcon,
+  coffee: Coffee,
+  shopping: ShoppingBag,
+  heart: Heart
+};
+
+export default function Home() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
+
+  const { data: groups = [], isLoading: groupsLoading } = useQuery({
+    queryKey: ['groups'],
+    queryFn: () => base44.entities.Group.list('-updated_date'),
+    enabled: !!user,
+  });
+
+  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
+    queryKey: ['expenses'],
+    queryFn: () => base44.entities.Expense.list('-date'),
+    enabled: !!user,
+  });
+
+  // Calculate balances
+  const calculateBalances = () => {
+    const balances = {};
+    
+    expenses.forEach(expense => {
+      if (!expense.participants || expense.participants.length === 0) return;
+      
+      const totalShares = expense.participants.reduce((sum, p) => sum + (p.share || 0), 0);
+      
+      expense.participants.forEach(participant => {
+        const share = (participant.share / totalShares) * expense.amount;
+        
+        if (participant.email === expense.paid_by) return;
+        
+        if (!balances[participant.email]) balances[participant.email] = {};
+        if (!balances[participant.email][expense.paid_by]) {
+          balances[participant.email][expense.paid_by] = 0;
+        }
+        balances[participant.email][expense.paid_by] += share;
+      });
+    });
+
+    return balances;
+  };
+
+  const balances = calculateBalances();
+  const myBalances = user ? balances[user.email] || {} : {};
+  
+  const totalOwed = Object.values(myBalances).reduce((sum, amount) => sum + (amount > 0 ? amount : 0), 0);
+  const totalOwing = Object.values(myBalances).reduce((sum, amount) => sum + (amount < 0 ? -amount : 0), 0);
+
+  const totalSpent = expenses
+    .filter(e => e.paid_by === user?.email)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const recentExpenses = expenses.slice(0, 5);
+
+  return (
+    <div className="min-h-screen p-4 md:p-8 pb-24 md:pb-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.full_name?.split(' ')[0] || 'there'}! 👋
+          </h1>
+          <p className="text-gray-600">Here's your expense overview</p>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <Wallet className="w-6 h-6" />
+                  </div>
+                  <TrendingUp className="w-5 h-5 opacity-70" />
+                </div>
+                <p className="text-sm opacity-90 mb-1">You're owed</p>
+                <h3 className="text-3xl font-bold">${totalOwed.toFixed(2)}</h3>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <TrendingDown className="w-6 h-6" />
+                  </div>
+                </div>
+                <p className="text-sm opacity-90 mb-1">You owe</p>
+                <h3 className="text-3xl font-bold">${totalOwing.toFixed(2)}</h3>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <Receipt className="w-6 h-6" />
+                  </div>
+                </div>
+                <p className="text-sm opacity-90 mb-1">Total spent</p>
+                <h3 className="text-3xl font-bold">${totalSpent.toFixed(2)}</h3>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <UsersIcon className="w-6 h-6" />
+                  </div>
+                </div>
+                <p className="text-sm opacity-90 mb-1">Active groups</p>
+                <h3 className="text-3xl font-bold">{groups.length}</h3>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Groups and Recent Activity */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* My Groups */}
+          <div className="lg:col-span-2">
+            <Card className="shadow-md border-0">
+              <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <CardTitle className="text-xl font-bold">My Groups</CardTitle>
+                <Link to={createPageUrl("Groups")}>
+                  <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 shadow-md">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Group
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {groupsLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-20 bg-gray-100 animate-pulse rounded-xl" />
+                    ))}
+                  </div>
+                ) : groups.length === 0 ? (
+                  <div className="text-center py-12">
+                    <UsersIcon className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-500 mb-4">No groups yet. Create your first group!</p>
+                    <Link to={createPageUrl("Groups")}>
+                      <Button className="bg-gradient-to-r from-cyan-500 to-blue-600">
+                        Create Group
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {groups.slice(0, 5).map((group, index) => {
+                      const Icon = iconMap[group.icon] || UsersIcon;
+                      return (
+                        <motion.div
+                          key={group.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <Link to={`${createPageUrl("GroupDetail")}?id=${group.id}`}>
+                            <Card className="hover:shadow-md transition-all cursor-pointer border border-gray-100 hover:border-cyan-200">
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="p-3 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-2xl">
+                                    <Icon className="w-6 h-6 text-cyan-600" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h3 className="font-semibold text-gray-900">{group.name}</h3>
+                                    <p className="text-sm text-gray-500">
+                                      {group.members?.length || 0} members
+                                    </p>
+ 
