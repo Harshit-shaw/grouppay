@@ -1,0 +1,239 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Search,
+  MapPin,
+  Hotel,
+  Utensils,
+  Plane,
+  Star,
+  ExternalLink
+} from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function Explore() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [activeTab, setActiveTab] = useState("hotels");
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setLoading(true);
+    try {
+      let prompt = "";
+      if (activeTab === "hotels") {
+        prompt = `Find 5 popular hotels or stays in ${searchQuery}. For each, provide: name, approximate_price_per_night, rating, description, location, amenities (array), and booking_url`;
+      } else if (activeTab === "restaurants") {
+        prompt = `Find 5 popular restaurants in ${searchQuery}. For each, provide: name, cuisine_type, approximate_price_range, rating, description, location, specialties (array), and booking_url`;
+      } else {
+        prompt = `Find 5 popular holiday packages or travel deals for ${searchQuery}. For each, provide: name, duration, approximate_price, rating, description, highlights (array), and booking_url`;
+      }
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            results: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  rating: { type: "number" },
+                  description: { type: "string" },
+                  location: { type: "string" },
+                  booking_url: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      setResults(response.results || []);
+    } catch (error) {
+      console.error("Error searching:", error);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen p-4 md:p-8 pb-24 md:pb-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Explore</h1>
+          <p className="text-gray-600">Discover hotels, restaurants, and holiday packages</p>
+        </motion.div>
+
+        {/* Search Section */}
+        <Card className="shadow-lg border-0 mb-8 overflow-hidden">
+          <div className="h-2 bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600" />
+          <CardContent className="p-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsTrigger value="hotels" className="flex items-center gap-2">
+                  <Hotel className="w-4 h-4" />
+                  Hotels
+                </TabsTrigger>
+                <TabsTrigger value="restaurants" className="flex items-center gap-2">
+                  <Utensils className="w-4 h-4" />
+                  Restaurants
+                </TabsTrigger>
+                <TabsTrigger value="packages" className="flex items-center gap-2">
+                  <Plane className="w-4 h-4" />
+                  Packages
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    placeholder={`Search ${activeTab} by location...`}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    className="pl-10 h-12"
+                  />
+                </div>
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading || !searchQuery.trim()}
+                  className="h-12 px-8 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
+                >
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                  ) : (
+                    "Search"
+                  )}
+                </Button>
+              </div>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Results */}
+        {loading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="h-72 bg-gray-100 animate-pulse rounded-2xl" />
+            ))}
+          </div>
+        ) : results && results.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {results.map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="hover:shadow-xl transition-all border-0 shadow-md h-full flex flex-col">
+                  <div className="h-2 bg-gradient-to-r from-cyan-500 to-blue-600" />
+                  <CardHeader>
+                    <CardTitle className="flex items-start justify-between gap-2">
+                      <span className="text-lg">{item.name}</span>
+                      {item.rating && (
+                        <Badge variant="secondary" className="flex items-center gap-1 bg-yellow-100 text-yellow-800">
+                          <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                          {item.rating}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col">
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-3">{item.description}</p>
+                      
+                      {item.location && (
+                        <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+                          <MapPin className="w-4 h-4" />
+                          {item.location}
+                        </div>
+                      )}
+
+                      {item.cuisine_type && (
+                        <Badge variant="outline" className="mb-3">{item.cuisine_type}</Badge>
+                      )}
+
+                      {item.amenities && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {item.amenities.slice(0, 3).map((amenity, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">{amenity}</Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {item.specialties && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {item.specialties.slice(0, 3).map((specialty, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">{specialty}</Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {item.highlights && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {item.highlights.slice(0, 3).map((highlight, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">{highlight}</Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {(item.approximate_price_per_night || item.approximate_price_range || item.approximate_price) && (
+                        <div className="text-lg font-bold text-gray-900 mb-3">
+                          {item.approximate_price_per_night && `$${item.approximate_price_per_night}/night`}
+                          {item.approximate_price_range && item.approximate_price_range}
+                          {item.approximate_price && `$${item.approximate_price}`}
+                        </div>
+                      )}
+                    </div>
+
+                    {item.booking_url && (
+                      <Button variant="outline" className="w-full mt-4" asChild>
+                        <a href={item.booking_url} target="_blank" rel="noopener noreferrer">
+                          View Details
+                          <ExternalLink className="w-4 h-4 ml-2" />
+                        </a>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              {activeTab === "hotels" && <Hotel className="w-12 h-12 text-cyan-600" />}
+              {activeTab === "restaurants" && <Utensils className="w-12 h-12 text-cyan-600" />}
+              {activeTab === "packages" && <Plane className="w-12 h-12 text-cyan-600" />}
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Exploring</h3>
+            <p className="text-gray-500 max-w-md mx-auto">
+              Search for {activeTab} by location to discover great options for your next trip
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
