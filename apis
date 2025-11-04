@@ -1,0 +1,27 @@
+// JavaScript Example: Reading Entities
+// Filterable fields: name, description, invite_code, members, currency, cover_image, icon
+async function fetchGroupEntities() {
+    const response = await fetch(`https://app.base44.com/api/apps/6908de4a91d1f74ad73fd4ea/entities/Group`, {
+        headers: {
+            'api_key': '6bfc97cd68e2443b817be9cb3ca0668f', // or use await User.me() to get the API key
+            'Content-Type': 'application/json'
+        }
+    });
+    const data = await response.json();
+    console.log(data);
+}
+
+// JavaScript Example: Updating an Entity
+// Filterable fields: name, description, invite_code, members, currency, cover_image, icon
+async function updateGroupEntity(entityId, updateData) {
+    const response = await fetch(`https://app.base44.com/api/apps/6908de4a91d1f74ad73fd4ea/entities/Group/${entityId}`, {
+        method: 'PUT',
+        headers: {
+            'api_key': '6bfc97cd68e2443b817be9cb3ca0668f', // or use await User.me() to get the API key
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+    });
+    const data = await response.json();
+    console.log(data);
+}
